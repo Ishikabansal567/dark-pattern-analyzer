@@ -1,3 +1,4 @@
+const {preprocessCandidates} = require("./preprocessor");
 const express = require("express");
 const { GoogleGenAI } = require("@google/genai");
 require("dotenv").config();
@@ -20,7 +21,18 @@ app.post("/analyze", async (req, res) => {
     try {
         const candidates = req.body.candidates;
 
-        console.log("Received candidates:", candidates);
+        const processedCandidates =
+            preprocessCandidates(candidates);
+
+        console.log(
+            "Original candidates:",
+            candidates.length
+        );
+
+        console.log(
+            "Candidates sent to Gemini:",
+            processedCandidates.length
+        );
 
         const prompt = `
 You are analyzing webpage evidence for potential dark patterns.
@@ -73,18 +85,90 @@ Confidence must be one of:
 
 Here is the webpage evidence:
 
-${JSON.stringify(candidates, null, 2)}
+${JSON.stringify(processedCandidates, null, 2)}
 `;
 
         const response = await ai.models.generateContent({
-            model: "gemini-3.8-flash",
-            contents: prompt
+            model: "gemini-3.6-flash",
+            contents: prompt,
+             config: {
+                responseMimeType: "application/json",
+
+                responseSchema: {
+                    type: "object",
+
+                    properties: {
+                        detected: {
+                            type: "boolean"
+                        },
+
+                        pattern: {
+                            type: ["string", "null"]
+                        },
+
+                        severity: {
+                            type: "string",
+                            enum: ["Low", "Medium", "High"]
+                        },
+
+                        confidence: {
+                            type: "string",
+                            enum: ["Low", "Medium", "High"]
+                        },
+
+                        evidence: {
+                            type: "string"
+                        },
+
+                        explanation: {
+                            type: "string"
+                        },
+
+                        consumerProtection: {
+                            type: "object",
+
+                            properties: {
+                                applicable: {
+                                    type: "boolean"
+                                },
+
+                                framework: {
+                                    type: ["string", "null"]
+                                },
+
+                                category: {
+                                    type: ["string", "null"]
+                                }
+                            },
+
+                            required: [
+                                "applicable",
+                                "framework",
+                                "category"
+                            ]
+                        }
+                    },
+
+                    required: [
+                        "detected",
+                        "pattern",
+                        "severity",
+                        "confidence",
+                        "evidence",
+                        "explanation",
+                        "consumerProtection"
+                    ]
+                }
+            }
+
         });
 
-        console.log("Gemini response:", response.text);
+        const result = JSON.parse(response.text);
+
+        console.log("Gemini response:", result);
 
         res.json({
-            result: response.text
+            result: result
         });
 
     } catch (error) {
