@@ -17,5 +17,9 @@
   "bugs": {
     "url": "https://github.com/Ishikabansal567/dark-pattern-analyzer/issues"
   },
-  "homepage": "https://github.com/Ishikabansal567/dark-pattern-analyzer#readme"
+  "homepage": "https://github.com/Ishikabansal567/dark-pattern-analyzer#readme",
+  "dependencies": {
+    "@google/genai": "^2.22.0",
+    "dotenv": "^17.4.2"
+  }
 }
