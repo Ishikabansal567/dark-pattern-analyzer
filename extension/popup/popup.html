@@ -1,7 +1,9 @@
+
 <!DOCTYPE html>
 <html>
 <head>
     <title>Dark Pattern Analyzer</title>
+
     <style>
         body {
             width: 360px;
@@ -25,28 +27,49 @@
         }
 
         .result {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .finding {
             border: 1px solid #ddd;
             border-radius: 8px;
             padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .finding-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .section {
+            margin-top: 8px;
         }
 
         .label {
             font-weight: bold;
         }
 
-        .section {
-            margin-top: 12px;
+        .evidence {
+            margin-top: 4px;
+            padding: 8px;
+            background: #f5f5f5;
+            border-radius: 5px;
         }
 
-        .hidden {
-            display: none;
+        .no-findings {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
         }
     </style>
 </head>
 
 <body>
 
-    <h2>🛡 Dark Pattern Analyzer</h2>
+    <h2> Dark Pattern Analyzer</h2>
 
     <button id="scanButton">
         Scan This Page
@@ -54,41 +77,11 @@
 
     <div id="status"></div>
 
-    <div id="result" class="result hidden">
-
-        <div class="section">
-            <span class="label">Pattern:</span>
-            <span id="pattern"></span>
-        </div>
-
-        <div class="section">
-            <span class="label">Severity:</span>
-            <span id="severity"></span>
-        </div>
-
-        <div class="section">
-            <span class="label">Confidence:</span>
-            <span id="confidence"></span>
-        </div>
-
-        <div class="section">
-            <span class="label">Evidence:</span>
-            <div id="evidence"></div>
-        </div>
-
-        <div class="section">
-            <span class="label">Why:</span>
-            <div id="explanation"></div>
-        </div>
-
-        <div class="section" id="consumerSection">
-            <span class="label">Consumer Protection:</span>
-            <div id="consumerProtection"></div>
-        </div>
-
-    </div>
+    <!-- Findings will be inserted here by popup.js -->
+    <div id="result" class="result"></div>
 
     <script src="popup.js"></script>
 
 </body>
 </html>
+

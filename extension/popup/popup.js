@@ -1,138 +1,129 @@
 const scanButton = document.getElementById("scanButton");
-
 const status = document.getElementById("status");
 const resultBox = document.getElementById("result");
-
-const pattern = document.getElementById("pattern");
-const severity = document.getElementById("severity");
-const confidence = document.getElementById("confidence");
-const evidence = document.getElementById("evidence");
-const explanation = document.getElementById("explanation");
-
-const consumerSection =
-    document.getElementById("consumerSection");
-
-const consumerProtection =
-    document.getElementById("consumerProtection");
-
 
 scanButton.addEventListener("click", async () => {
 
     status.textContent = "Scanning page...";
-    resultBox.classList.add("hidden");
+    resultBox.innerHTML = "";
 
-    const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true
-    });
+    try {
 
-    chrome.tabs.sendMessage(
-        tab.id,
-        { action: "scanPage" },
-        async (response) => {
+        const [tab] = await chrome.tabs.query({
+            active: true,
+            currentWindow: true
+        });
 
-            if (chrome.runtime.lastError) {
-                status.textContent =
-                    "Could not scan this page.";
+        if (!tab || !tab.id) {
+            status.textContent = "Could not find current tab.";
+            return;
+        }
 
-                console.error(
-                    chrome.runtime.lastError.message
-                );
+        // First try to contact the existing content script
+        chrome.tabs.sendMessage(
+            tab.id,
+            { action: "scanPage" },
+            async (response) => {
 
-                return;
-            }
+                // Content script doesn't exist
+                if (chrome.runtime.lastError) {
 
-            console.log(
-                "Received from page:",
-                response
-            );
-
-            try {
-
-                status.textContent =
-                    "Analyzing with Gemini...";
-
-                const result = await fetch(
-                    "http://localhost:3000/analyze",
-                    {
-                        method: "POST",
-
-                        headers: {
-                            "Content-Type":
-                                "application/json"
-                        },
-
-                        body: JSON.stringify({
-                            candidates:
-                                response.candidates
-                        })
-                    }
-                );
-
-                if (!result.ok) {
-                    throw new Error(
-                        `Server returned ${result.status}`
+                    console.log(
+                        "Content script not found. Injecting..."
                     );
+
+                    try {
+
+                        // Inject content.js
+                        await chrome.scripting.executeScript({
+                            target: {
+                                tabId: tab.id
+                            },
+                            files: ["content.js"]
+                        });
+
+                        // Try again after injection
+                        chrome.tabs.sendMessage(
+                            tab.id,
+                            { action: "scanPage" },
+                            (response) => {
+
+                                if (chrome.runtime.lastError) {
+
+                                    console.error(
+                                        chrome.runtime.lastError.message
+                                    );
+
+                                    status.textContent =
+                                        "Could not scan this page.";
+
+                                    return;
+                                }
+
+                                showResults(response);
+                            }
+                        );
+
+                    } catch (error) {
+
+                        console.error(
+                            "Injection failed:",
+                            error
+                        );
+
+                        status.textContent =
+                            "This page cannot be scanned.";
+
+                    }
+
+                    return;
                 }
 
-                const data = await result.json();
-
-                console.log(
-                    "Backend response:",
-                    data
-                );
-
-                displayResult(data.result);
-
-            } catch (error) {
-
-                console.error(error);
-
-                status.textContent =
-                    "Analysis failed. Check the backend.";
+                showResults(response);
             }
-        }
-    );
+        );
+
+    } catch (error) {
+
+        console.error("Scan error:", error);
+
+        status.textContent =
+            "Could not scan this page.";
+    }
 });
 
 
-function displayResult(data) {
+function showResults(response) {
 
-    status.textContent = "";
+    if (!response) {
 
-    resultBox.classList.remove("hidden");
+        status.textContent =
+            "No response from page.";
 
-    pattern.textContent =
-        data.detected
-            ? data.pattern
-            : "No potential dark pattern detected";
-
-    severity.textContent =
-        data.severity;
-
-    confidence.textContent =
-        data.confidence;
-
-    evidence.textContent =
-        data.evidence;
-
-    explanation.textContent =
-        data.explanation;
-
-
-    if (
-        data.consumerProtection &&
-        data.consumerProtection.applicable
-    ) {
-
-        consumerSection.classList.remove("hidden");
-
-        consumerProtection.textContent =
-            `${data.consumerProtection.framework}
-             | Category: ${data.consumerProtection.category}`;
-
-    } else {
-
-        consumerSection.classList.add("hidden");
+        return;
     }
+
+    status.textContent =
+        "Scan complete.";
+
+    console.log(
+        "Scan response:",
+        response
+    );
+
+    const candidates =
+        response.candidates || [];
+
+    resultBox.innerHTML = `
+        <h3>Scan Complete</h3>
+        <p>
+            Found ${candidates.length}
+            page elements to analyze.
+        </p>
+    `;
+
+    console.log(
+        "Candidates:",
+        candidates
+    );
 }
